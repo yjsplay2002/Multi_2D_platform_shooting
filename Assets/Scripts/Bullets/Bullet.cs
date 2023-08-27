@@ -8,7 +8,6 @@ namespace Bullets
 {
     public class Bullet : MonoBehaviour
     {
-        [SerializeField] private float _damage = 1f;
         [SerializeField] private float _speed = 10f;
         [SerializeField] private PhotonView _photonView;
         [SerializeField] private LayerMask _groundLayer;
@@ -17,6 +16,7 @@ namespace Bullets
         protected Vector2 _direction;
         private int _originID;
         private Rigidbody2D _rigidbody2D;
+        private float _damage = 1f;
 
         private void Awake()
         {
@@ -80,6 +80,11 @@ namespace Bullets
         public void SetOrigin(int photonViewID)
         {
             _originID = photonViewID;
+        }
+
+        public void SetDamage(float currentWeaponDamage)
+        {
+            _damage = currentWeaponDamage;
         }
     }
 }

@@ -45,6 +45,7 @@ MonoBehaviour:
   - SetFlipRPC
   - OnHitRPC
   - DestroyRPC
+  - SetWeaponRPC
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1

@@ -4,6 +4,7 @@ using Cinemachine;
 using Photon.Pun;
 using Unity.VisualScripting;
 using UnityEngine;
+using Weapons;
 
 namespace Player
 {
@@ -13,6 +14,9 @@ namespace Player
         [SerializeField] private float _speed = 4f;
         [SerializeField] private float _jumpPower = 300f;
         [SerializeField] private LayerMask _deadZoneLayer;
+        [SerializeField] private Weapon[] _weapons;
+        [SerializeField] private Transform _handTransform;
+        [SerializeField] private Transform _weaponAnchor;
         
         private Rigidbody2D _rigidbody2D;
         private Animator _animator;
@@ -26,6 +30,11 @@ namespace Player
         private static readonly int VelocityY = Animator.StringToHash("velocityY");
         private static readonly int Grounded = Animator.StringToHash("grounded");
         private static readonly int Fire = Animator.StringToHash("fire");
+        private Weapon _currentWeapon;
+        private int _currentWeaponIndex = 0;
+        
+        public float WeaponCooltime { get; private set; }
+        public Weapon CurrentWeapon => _currentWeapon;
 
         void Awake()
         {
@@ -40,6 +49,7 @@ namespace Player
                 var vCam = GameObject.Find("Virtual Cam").GetComponent<CinemachineVirtualCamera>();
                 vCam.Follow = transform;
                 vCam.LookAt = transform;
+                _photonView.RPC(nameof(SetWeaponRPC), RpcTarget.AllBuffered, 0);
             }
         }
 
@@ -66,20 +76,42 @@ namespace Player
 
                 if (Input.GetKeyDown(KeyCode.UpArrow) && isGround)
                 {
-                    _photonView.RPC("JumpRPC", RpcTarget.All);
+                    _photonView.RPC(nameof(JumpRPC), RpcTarget.All);
                 }
                 
                 // Fire bullet
-                if (Input.GetKeyDown(KeyCode.Space))
+                if (Input.GetKeyDown(KeyCode.Space) && WeaponCooltime <= 0)
                 {
                     _animator.SetTrigger(Fire);
-                    var bulletObj = PhotonNetwork.Instantiate("Bullet", transform.position, Quaternion.identity);
+                    
+                    var bulletObj = PhotonNetwork.Instantiate(_currentWeapon._bulletPrefabName, transform.position, Quaternion.identity);
                     var bullet = bulletObj.GetComponent<Bullet>();
                     bullet.SetDirection(_spriteRenderer.flipX ? Vector2.left : Vector2.right);
                     bullet.SetOrigin(PhotonNetwork.LocalPlayer.ActorNumber);
+                    bullet.SetDamage(_currentWeapon._damage);
+                    
+                    WeaponCooltime = _currentWeapon._fireInterval;
                 }
+                
+                // Change weapon
+                if (Input.GetKeyDown(KeyCode.Tab))
+                {
+                    _photonView.RPC(nameof(SetWeaponRPC), RpcTarget.AllBuffered, (_currentWeaponIndex + 1) % _weapons.Length);
+                }
+                
             }
             
+            WeaponCooltime -= Time.deltaTime;
+        }
+
+        [PunRPC]
+        private void SetWeaponRPC(int index)
+        {
+            _currentWeapon = _weapons[index];
+            _currentWeaponIndex = index;
+            WeaponCooltime = _currentWeapon._fireInterval;
+            var weaponRenderer = _weaponAnchor.GetComponent<SpriteRenderer>();
+            weaponRenderer.sprite = _currentWeapon._sprite;
         }
 
         private void OnTriggerEnter2D(Collider2D other)
@@ -100,7 +132,23 @@ namespace Player
         private void SetFlipRPC(float axis)
         {
             if (axis != 0)
+            {
                 _spriteRenderer.flipX = axis < 0;
+                if (_spriteRenderer.flipX)
+                {
+                    var position = _handTransform.localPosition;
+                    position = new Vector3(Mathf.Abs(position.x) * -1, position.y, position.z) ;
+                    _handTransform.localPosition = position;
+                    _handTransform.rotation = Quaternion.Euler(0, 180, 0);
+                }
+                else
+                {
+                    var position = _handTransform.localPosition;
+                    position = new Vector3(Mathf.Abs(position.x), position.y, position.z) ;
+                    _handTransform.localPosition = position;
+                    _handTransform.rotation = Quaternion.Euler(0, 0, 0);
+                }
+            }
         }
 
         [PunRPC]

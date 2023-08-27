@@ -17,7 +17,6 @@ namespace Managers
 
         void Awake()
         {
-            Screen.SetResolution(1366, 768, false);
             PhotonNetwork.SendRate = 60;
             PhotonNetwork.SerializationRate = 30;
             Instance = this;
