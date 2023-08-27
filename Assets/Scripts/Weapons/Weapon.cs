@@ -7,7 +7,7 @@ namespace Weapons
     public class Weapon : ScriptableObject
     {
         public Sprite _sprite;
-        public Vector3 _anchorRotation;
+        public float _angularVelocity;
         public string _bulletPrefabName;
         public float _damage;
         public float _fireInterval;

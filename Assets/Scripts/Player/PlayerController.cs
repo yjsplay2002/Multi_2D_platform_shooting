@@ -86,7 +86,7 @@ namespace Player
                     
                     var bulletObj = PhotonNetwork.Instantiate(_currentWeapon._bulletPrefabName, transform.position, Quaternion.identity);
                     var bullet = bulletObj.GetComponent<Bullet>();
-                    bullet.SetDirection(_spriteRenderer.flipX ? Vector2.left : Vector2.right);
+                    bullet.SetDirection(_spriteRenderer.flipX ? Vector2.left : Vector2.right, _currentWeapon._angularVelocity);
                     bullet.SetOrigin(PhotonNetwork.LocalPlayer.ActorNumber);
                     bullet.SetDamage(_currentWeapon._damage);
                     

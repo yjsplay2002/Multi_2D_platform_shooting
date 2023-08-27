@@ -51,19 +51,20 @@ namespace Bullets
             return isGroundLayer;    
         }
 
-        public void SetDirection(Vector2 direction)
+        public void SetDirection(Vector2 direction, float angularVelocity)
         {
-            _photonView.RPC(nameof(SetDirectionRPC), RpcTarget.All, direction);
+            _photonView.RPC(nameof(SetDirectionRPC), RpcTarget.All, direction, angularVelocity);
         }
         
         [PunRPC]
-        public void SetDirectionRPC(Vector2 direction)
+        public void SetDirectionRPC(Vector2 direction, float angularVelocity)
         {
             // rotate this transform to direction
             float rotationZ = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.Euler(0,0,rotationZ);
             _direction = direction;
             _rigidbody2D.velocity = _direction * _speed;
+            _rigidbody2D.angularVelocity = angularVelocity;
         }
         
         [PunRPC]

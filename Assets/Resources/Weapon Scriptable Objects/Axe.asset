@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Axe
   m_EditorClassIdentifier: 
   _sprite: {fileID: 1821762551, guid: e06da58a4d1404d928f6513e4df90b11, type: 3}
-  _anchorRotation: {x: 0, y: 0, z: 0}
+  _angularVelocity: -1000
   _bulletPrefabName: Axe
   _damage: 20
   _fireInterval: 1.5
