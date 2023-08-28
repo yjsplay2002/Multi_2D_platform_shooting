@@ -36,7 +36,7 @@ namespace Managers
         public override void OnConnectedToMaster()
         {
             PhotonNetwork.LocalPlayer.NickName = _nickNameInput.text;
-            PhotonNetwork.JoinOrCreateRoom("Room", new RoomOptions { MaxPlayers = 4 }, null);
+            PhotonNetwork.JoinOrCreateRoom("Room", new RoomOptions { MaxPlayers = 8 }, null);
         }
 
         public override void OnJoinedRoom()
@@ -46,10 +46,14 @@ namespace Managers
             SpawnPlayer();
         }
 
+        /// <summary>
+        /// Init something in game scene
+        /// </summary>
+        /// <returns></returns>
         IEnumerator InitGameScene()
         {
-            yield return new WaitForSeconds(0.2f);
-            // foreach (GameObject GO in GameObject.FindGameObjectsWithTag("Bullet")) GO.GetComponent<PhotonView>().RPC("DestroyRPC", RpcTarget.All);
+            yield return new WaitForSeconds(0.5f);
+            // TODO: Init something in game scene
         }
 
         public void SpawnPlayer()

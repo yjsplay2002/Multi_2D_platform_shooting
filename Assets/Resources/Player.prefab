@@ -762,7 +762,7 @@ MonoBehaviour:
     SynchronizeType: 1
     Name: victory
   - Type: 9
-    SynchronizeType: 0
+    SynchronizeType: 1
     Name: fire
   m_SynchronizeLayers:
   - SynchronizeType: 1

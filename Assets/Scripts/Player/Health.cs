@@ -28,9 +28,27 @@ namespace Player
             Init();
         }
 
-        public void Init()
+        private void Init()
         {
-            _currentHealth = _maxHealth;
+            Hashtable ht = _photonView.Owner.CustomProperties;
+            var currentHealthExist = ht.TryGetValue("currentHealth", out var currentHealth);
+            if (!currentHealthExist)
+            {
+                _currentHealth = _maxHealth;
+                return;
+            }
+            
+            try
+            {
+                var health = (float)currentHealth;
+                if(health > 0)
+                    _currentHealth = health;
+            }
+            // When currentHealth is 0, it throws exception
+            catch(Exception e)
+            {
+                _currentHealth = _maxHealth;
+            }
         }
 
         private void Update()
@@ -40,16 +58,17 @@ namespace Player
 
         public void OnHit(float damage, int originID)
         {
-            _photonView.RPC(nameof(OnHitRPC), RpcTarget.AllBuffered, damage, originID);
+            _photonView.RPC(nameof(OnHitRPC), RpcTarget.All, damage, originID);
         }
 
         [PunRPC]
         private void OnHitRPC(float damage, int originID)
         {
             if (_currentHealth <= 0) return;
-
             
             _currentHealth -= damage;
+            SetCurrentHealthCustomProperties();
+
             if (_hitEffect != null)
             {
                 Instantiate(_hitEffect, transform.position, Quaternion.identity);
@@ -72,6 +91,13 @@ namespace Player
             }
         }
 
+        private void SetCurrentHealthCustomProperties()
+        {
+            Hashtable ht = new Hashtable();
+            ht.Add("currentHealth", _currentHealth);
+            _photonView.Owner.SetCustomProperties(ht);
+        }
+        
         private void AddDeathCount()
         {
             Hashtable ht = PhotonNetwork.LocalPlayer.CustomProperties;
@@ -112,6 +138,11 @@ namespace Player
             {
                 AddDeathCount();
             }
+            
+            Hashtable ht = new Hashtable();
+            ht.Add("currentHealth", 0);
+            _photonView.Owner.SetCustomProperties(ht);
+            
             StartCoroutine(DieCo());
         }
 

@@ -8,6 +8,9 @@ using Weapons;
 
 namespace Player
 {
+    /// <summary>
+    /// Main Logic of Player
+    /// </summary>
     public class PlayerController : MonoBehaviour
     {
         [SerializeField] private LayerMask _groundLayer;
@@ -24,17 +27,15 @@ namespace Player
         private PhotonView _photonView;
         private Health _health;
         
-        bool isGround;
-        Vector3 curPos;
+        private bool _onGround;
+        private int _currentWeaponIndex = 0;
+        
         private static readonly int VelocityX = Animator.StringToHash("velocityX");
         private static readonly int VelocityY = Animator.StringToHash("velocityY");
         private static readonly int Grounded = Animator.StringToHash("grounded");
         private static readonly int Fire = Animator.StringToHash("fire");
-        private Weapon _currentWeapon;
-        private int _currentWeaponIndex = 0;
-        
         public float WeaponCooltime { get; private set; }
-        public Weapon CurrentWeapon => _currentWeapon;
+        public Weapon CurrentWeapon { get; private set; }
 
         void Awake()
         {
@@ -44,13 +45,12 @@ namespace Player
             _photonView = GetComponent<PhotonView>();
             _health = GetComponent<Health>();
 
-            if (_photonView.IsMine)
-            {
-                var vCam = GameObject.Find("Virtual Cam").GetComponent<CinemachineVirtualCamera>();
-                vCam.Follow = transform;
-                vCam.LookAt = transform;
-                _photonView.RPC(nameof(SetWeaponRPC), RpcTarget.AllBuffered, 0);
-            }
+            if (!_photonView.IsMine) return;
+            
+            var vCam = GameObject.Find("Virtual Cam").GetComponent<CinemachineVirtualCamera>();
+            vCam.Follow = transform;
+            vCam.LookAt = transform;
+            _photonView.RPC(nameof(SetWeaponRPC), RpcTarget.All, 0);
         }
 
 
@@ -68,13 +68,13 @@ namespace Player
                 _animator.SetFloat(VelocityX, Mathf.Abs(horizontalAxis));
                 _animator.SetFloat(VelocityY, _rigidbody2D.velocity.y);
                 
-                _photonView.RPC("SetFlipRPC", RpcTarget.All, horizontalAxis);
+                _photonView.RPC(nameof(SetFlipRPC), RpcTarget.AllBuffered, horizontalAxis);
                 
                 // Jump and ground check
-                isGround = Physics2D.OverlapCircle((Vector2)transform.position + new Vector2(0, -0.5f), 0.07f, _groundLayer);
-                _animator.SetBool(Grounded, isGround);
+                _onGround = Physics2D.OverlapCircle((Vector2)transform.position + new Vector2(0, -0.5f), 0.07f, _groundLayer);
+                _animator.SetBool(Grounded, _onGround);
 
-                if (Input.GetKeyDown(KeyCode.UpArrow) && isGround)
+                if (Input.GetKeyDown(KeyCode.UpArrow) && _onGround)
                 {
                     _photonView.RPC(nameof(JumpRPC), RpcTarget.All);
                 }
@@ -84,13 +84,13 @@ namespace Player
                 {
                     _animator.SetTrigger(Fire);
                     
-                    var bulletObj = PhotonNetwork.Instantiate(_currentWeapon._bulletPrefabName, transform.position, Quaternion.identity);
+                    var bulletObj = PhotonNetwork.Instantiate(CurrentWeapon._bulletPrefabName, transform.position, Quaternion.identity);
                     var bullet = bulletObj.GetComponent<Bullet>();
-                    bullet.SetDirection(_spriteRenderer.flipX ? Vector2.left : Vector2.right, _currentWeapon._angularVelocity);
+                    bullet.SetDirection(_spriteRenderer.flipX ? Vector2.left : Vector2.right, CurrentWeapon._angularVelocity);
                     bullet.SetOrigin(PhotonNetwork.LocalPlayer.ActorNumber);
-                    bullet.SetDamage(_currentWeapon._damage);
+                    bullet.SetDamage(CurrentWeapon._damage);
                     
-                    WeaponCooltime = _currentWeapon._fireInterval;
+                    WeaponCooltime = CurrentWeapon._fireInterval;
                 }
                 
                 // Change weapon
@@ -107,13 +107,16 @@ namespace Player
         [PunRPC]
         private void SetWeaponRPC(int index)
         {
-            _currentWeapon = _weapons[index];
+            CurrentWeapon = _weapons[index];
             _currentWeaponIndex = index;
-            WeaponCooltime = _currentWeapon._fireInterval;
             var weaponRenderer = _weaponAnchor.GetComponent<SpriteRenderer>();
-            weaponRenderer.sprite = _currentWeapon._sprite;
+            weaponRenderer.sprite = CurrentWeapon._sprite;
         }
 
+        /// <summary>
+        /// Deadzone check
+        /// </summary>
+        /// <param name="other"></param>
         private void OnTriggerEnter2D(Collider2D other)
         {
             if (IsDeadZoneLayer(other.gameObject.layer, _deadZoneLayer))
@@ -128,6 +131,10 @@ namespace Player
             return isDeadZoneLayer;    
         }
 
+        /// <summary>
+        /// Flip sprite and hand transform when player move left or right
+        /// </summary>
+        /// <param name="axis"></param>
         [PunRPC]
         private void SetFlipRPC(float axis)
         {
